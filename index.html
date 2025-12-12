@@ -15,27 +15,74 @@
         display: block;
       }
       #video-input {
-        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
         transform: scaleX(-1);
-      } /* Hidden video, mirrored logic handled in JS */
+        opacity: 0.3;
+        z-index: 1;
+      } /* Video background, mirrored */
+
+      #webgl-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 2;
+      }
 
       #ui-layer {
         position: absolute;
         top: 20px;
         left: 20px;
         color: #fff;
-        pointer-events: none; /* Let clicks pass through to canvas if needed */
+        pointer-events: none;
         z-index: 10;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 15px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 255, 255, 0.3);
       }
+
+      #ui-right {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: #fff;
+        pointer-events: none;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 15px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 0, 255, 0.3);
+        max-width: 280px;
+      }
+
       h1 {
         margin: 0;
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+      }
+      h2 {
+        margin: 0 0 10px 0;
+        font-size: 1.1rem;
+        text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        color: #ff00ff;
       }
       p {
         margin: 5px 0 0 0;
-        font-size: 0.9rem;
-        opacity: 0.8;
+        font-size: 0.85rem;
+        opacity: 0.9;
+        line-height: 1.4;
+      }
+      .feature {
+        margin: 8px 0;
+        padding-left: 5px;
+        border-left: 2px solid rgba(0, 255, 255, 0.5);
       }
 
       #controls {
@@ -91,6 +138,60 @@
           opacity: 1;
         }
       }
+
+      /* Hand Point Indicators */
+      .hand-indicator {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 3px solid;
+        z-index: 5;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        transition: all 0.1s ease-out;
+      }
+
+      .hand-indicator.hand-0 {
+        border-color: #00ffff;
+        box-shadow: 0 0 20px #00ffff, inset 0 0 10px #00ffff;
+      }
+
+      .hand-indicator.hand-1 {
+        border-color: #ff00ff;
+        box-shadow: 0 0 20px #ff00ff, inset 0 0 10px #ff00ff;
+      }
+
+      .hand-indicator.pinching {
+        background: radial-gradient(circle, rgba(255, 255, 0, 0.8), transparent);
+        animation: pinch-pulse 0.5s infinite;
+      }
+
+      @keyframes pinch-pulse {
+        0%, 100% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.3);
+        }
+      }
+
+      #gesture-status {
+        position: absolute;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #ffff00;
+        font-size: 1.1rem;
+        font-weight: bold;
+        text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
+        z-index: 10;
+        pointer-events: none;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 10px 20px;
+        border-radius: 20px;
+        border: 2px solid rgba(255, 255, 0, 0.5);
+      }
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -108,11 +209,49 @@
     ></script>
   </head>
   <body>
+    <video id="video-input"></video>
+
     <div id="ui-layer">
-      <h1>Gestural Particle System</h1>
-      <p>🖐 Open Hand: Float | 👌 Pinch: Attract/Condense</p>
-      <p>Move hand to guide particles.</p>
+      <h1>AI Particle Controller</h1>
+      <p style="margin-top: 10px; font-weight: bold; color: #00ffff;">ONE HAND GESTURES:</p>
+      <div class="feature">
+        <p><strong>✋ Open Hand:</strong> Repel particles</p>
+      </div>
+      <div class="feature">
+        <p><strong>👌 Pinch:</strong> Attract & condense</p>
+      </div>
+      <div class="feature">
+        <p><strong>👆 Move Hand:</strong> Control position</p>
+      </div>
+
+      <p style="margin-top: 15px; font-weight: bold; color: #ff00ff;">TWO HAND GESTURES:</p>
+      <div class="feature">
+        <p><strong>👐 Spread Apart:</strong> Zoom IN</p>
+      </div>
+      <div class="feature">
+        <p><strong>🤏 Move Together:</strong> Zoom OUT</p>
+      </div>
+      <div class="feature">
+        <p><strong>🔄 Rotate Hands:</strong> Rotate system</p>
+      </div>
+      <div class="feature">
+        <p><strong>✊ Both Pinch:</strong> Divide particles</p>
+      </div>
     </div>
+
+    <div id="ui-right">
+      <h2>System Status</h2>
+      <p><strong>Particles:</strong> <span id="particle-count">15000</span></p>
+      <p><strong>Active Hands:</strong> <span id="hand-count">0</span></p>
+      <p><strong>Current Shape:</strong> <span id="current-shape">Sphere</span></p>
+      <p><strong>Zoom Level:</strong> <span id="zoom-level">100%</span></p>
+      <p style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2);">
+        <strong>Controls:</strong><br>
+        Use buttons below to change particle shapes
+      </p>
+    </div>
+
+    <div id="gesture-status" style="display: none;"></div>
 
     <div id="loading">Initialize Camera & AI...</div>
 
@@ -124,8 +263,6 @@
       <button class="btn" onclick="setShape('dna')">DNA</button>
     </div>
 
-    <video id="video-input"></video>
-
     <script>
       // --- Configuration ---
       const PARTICLE_COUNT = 15000;
@@ -133,10 +270,17 @@
       const CAM_DEPTH = 30;
 
       // --- State ---
+      let trackedHands = [];
       let handPosition = new THREE.Vector3(0, 0, 0);
       let isPinching = false;
       let currentShape = "sphere";
       let time = 0;
+      let zoomLevel = 1.0;
+      let particleScale = 1.0;
+      let systemRotation = { x: 0, y: 0, z: 0 };
+      let divideFactor = 1.0;
+      let handIndicators = [];
+      let lastHandDistance = 0;
 
       // --- Three.js Setup ---
       const scene = new THREE.Scene();
@@ -156,6 +300,7 @@
       });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.domElement.id = 'webgl-canvas';
       document.body.appendChild(renderer.domElement);
 
       // --- Particle System ---
@@ -323,7 +468,64 @@
           .querySelectorAll(".btn")
           .forEach((b) => b.classList.remove("active"));
         event.target.classList.add("active");
+
+        // Update UI
+        document.getElementById("current-shape").textContent =
+          shape.charAt(0).toUpperCase() + shape.slice(1);
       };
+
+      // Helper: Update gesture status display
+      function showGestureStatus(text) {
+        const statusEl = document.getElementById("gesture-status");
+        statusEl.textContent = text;
+        statusEl.style.display = "block";
+        setTimeout(() => {
+          statusEl.style.display = "none";
+        }, 2000);
+      }
+
+      // Helper: Create hand indicators
+      function createHandIndicator(index) {
+        const indicator = document.createElement("div");
+        indicator.className = `hand-indicator hand-${index}`;
+        indicator.id = `hand-indicator-${index}`;
+        document.body.appendChild(indicator);
+        return indicator;
+      }
+
+      // Helper: Update hand indicator position
+      function updateHandIndicator(index, x, y, isPinching) {
+        let indicator = document.getElementById(`hand-indicator-${index}`);
+        if (!indicator) {
+          indicator = createHandIndicator(index);
+          handIndicators[index] = indicator;
+        }
+
+        indicator.style.left = `${x * 100}%`;
+        indicator.style.top = `${y * 100}%`;
+        indicator.style.display = "block";
+
+        if (isPinching) {
+          indicator.classList.add("pinching");
+        } else {
+          indicator.classList.remove("pinching");
+        }
+      }
+
+      // Helper: Hide hand indicator
+      function hideHandIndicator(index) {
+        const indicator = document.getElementById(`hand-indicator-${index}`);
+        if (indicator) {
+          indicator.style.display = "none";
+        }
+      }
+
+      // Helper: Calculate distance between two points
+      function distance2D(p1, p2) {
+        return Math.sqrt(
+          Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)
+        );
+      }
 
       // --- MediaPipe Hand Tracking ---
       const videoElement = document.getElementById("video-input");
@@ -331,38 +533,136 @@
       function onResults(results) {
         document.getElementById("loading").style.display = "none";
 
+        // Clear tracked hands
+        trackedHands = [];
+
         if (
           results.multiHandLandmarks &&
           results.multiHandLandmarks.length > 0
         ) {
-          const landmarks = results.multiHandLandmarks[0];
+          // Process all detected hands
+          for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+            const landmarks = results.multiHandLandmarks[i];
+            const indexTip = landmarks[8];
+            const thumbTip = landmarks[4];
 
-          // 1. Map Hand Position (Index Finger Tip: #8) to 3D World
-          // MediaPipe coords: x [0,1], y [0,1]. 0,0 is top-left.
-          const indexTip = landmarks[8];
-          const thumbTip = landmarks[4];
+            // Calculate pinch
+            const pinchDist = distance2D(indexTip, thumbTip);
+            const isPinching = pinchDist < 0.05;
 
-          // Normalize coordinates to Three.js world space (Roughly -15 to +15)
-          // We flip X because webcam is mirrored
-          const targetX = (0.5 - indexTip.x) * 40;
-          const targetY = (0.5 - indexTip.y) * 25;
+            // Store hand data
+            trackedHands.push({
+              index: i,
+              landmarks: landmarks,
+              indexTip: indexTip,
+              thumbTip: thumbTip,
+              isPinching: isPinching,
+            });
 
-          // Smoothly lerp the hand tracker
-          handPosition.lerp(new THREE.Vector3(targetX, targetY, 0), 0.1);
+            // Update hand indicator on screen
+            updateHandIndicator(i, indexTip.x, indexTip.y, isPinching);
+          }
 
-          // 2. Detect Pinch (Distance between Thumb and Index)
-          const distance = Math.sqrt(
-            Math.pow(indexTip.x - thumbTip.x, 2) +
-              Math.pow(indexTip.y - thumbTip.y, 2)
-          );
+          // Update hand count UI
+          document.getElementById("hand-count").textContent =
+            trackedHands.length;
 
-          // Threshold for pinch
-          isPinching = distance < 0.05;
+          // ONE HAND MODE
+          if (trackedHands.length === 1) {
+            const hand = trackedHands[0];
+            const indexTip = hand.indexTip;
 
-          // Optional: Change color based on hand X position
-          const hue = indexTip.x; // 0 to 1
-          color1.setHSL(hue, 1.0, 0.5);
-          color2.setHSL((hue + 0.5) % 1, 1.0, 0.5);
+            // Map hand position to 3D world space
+            const targetX = (0.5 - indexTip.x) * 40;
+            const targetY = (0.5 - indexTip.y) * 25;
+
+            // Smoothly lerp the hand tracker
+            handPosition.lerp(new THREE.Vector3(targetX, targetY, 0), 0.1);
+
+            isPinching = hand.isPinching;
+
+            // Change color based on hand X position
+            const hue = indexTip.x;
+            color1.setHSL(hue, 1.0, 0.5);
+            color2.setHSL((hue + 0.5) % 1, 1.0, 0.5);
+
+            // Reset two-hand effects
+            divideFactor = THREE.MathUtils.lerp(divideFactor, 1.0, 0.1);
+          }
+          // TWO HAND MODE
+          else if (trackedHands.length === 2) {
+            const hand1 = trackedHands[0];
+            const hand2 = trackedHands[1];
+
+            // Calculate center point between hands
+            const centerX = (hand1.indexTip.x + hand2.indexTip.x) / 2;
+            const centerY = (hand1.indexTip.y + hand2.indexTip.y) / 2;
+
+            const targetX = (0.5 - centerX) * 40;
+            const targetY = (0.5 - centerY) * 25;
+
+            handPosition.lerp(new THREE.Vector3(targetX, targetY, 0), 0.1);
+
+            // Calculate distance between hands
+            const handDist = distance2D(hand1.indexTip, hand2.indexTip);
+
+            // ZOOM GESTURE: Spread apart = Zoom IN, Move together = Zoom OUT
+            if (lastHandDistance > 0) {
+              const distDiff = handDist - lastHandDistance;
+
+              if (Math.abs(distDiff) > 0.01) {
+                if (distDiff > 0) {
+                  // Hands spreading apart - ZOOM IN
+                  zoomLevel += distDiff * 2;
+                  zoomLevel = Math.min(zoomLevel, 3.0);
+                  showGestureStatus("🔍 ZOOM IN");
+                } else {
+                  // Hands moving together - ZOOM OUT
+                  zoomLevel += distDiff * 2;
+                  zoomLevel = Math.max(zoomLevel, 0.3);
+                  showGestureStatus("🔎 ZOOM OUT");
+                }
+
+                // Update zoom level display
+                document.getElementById("zoom-level").textContent =
+                  Math.round(zoomLevel * 100) + "%";
+              }
+            }
+            lastHandDistance = handDist;
+
+            // ROTATE GESTURE: Detect angular rotation
+            const angle = Math.atan2(
+              hand2.indexTip.y - hand1.indexTip.y,
+              hand2.indexTip.x - hand1.indexTip.x
+            );
+            systemRotation.z = angle;
+
+            // DIVIDE GESTURE: Both hands pinching
+            if (hand1.isPinching && hand2.isPinching) {
+              divideFactor = THREE.MathUtils.lerp(divideFactor, 2.0, 0.1);
+              showGestureStatus("✊ DIVIDE MODE");
+              isPinching = false;
+            } else {
+              divideFactor = THREE.MathUtils.lerp(divideFactor, 1.0, 0.1);
+              isPinching = false;
+            }
+
+            // Color based on hand distance
+            const hue = Math.min(handDist * 2, 1.0);
+            color1.setHSL(hue, 1.0, 0.5);
+            color2.setHSL((hue + 0.3) % 1, 1.0, 0.5);
+          }
+        } else {
+          // No hands detected
+          document.getElementById("hand-count").textContent = "0";
+          isPinching = false;
+          lastHandDistance = 0;
+          divideFactor = THREE.MathUtils.lerp(divideFactor, 1.0, 0.1);
+        }
+
+        // Hide indicators for hands that are no longer tracked
+        for (let i = trackedHands.length; i < 2; i++) {
+          hideHandIndicator(i);
         }
       }
 
@@ -373,7 +673,7 @@
       });
 
       hands.setOptions({
-        maxNumHands: 1,
+        maxNumHands: 2,
         modelComplexity: 1,
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5,
@@ -401,8 +701,6 @@
         const colArray = colorsAttribute.array;
 
         // Interaction Strength
-        // If pinching: Attract strongly (Gravity)
-        // If Open: Follow target shape but respond to hand position gently
         const mixFactor = 0.05; // Speed of morphing to shape
 
         for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -414,9 +712,17 @@
           let pz = posArray[idx + 2];
 
           // 2. Target Position (Based on current shape)
-          let tx = targetPositions[idx];
-          let ty = targetPositions[idx + 1];
-          let tz = targetPositions[idx + 2];
+          let tx = targetPositions[idx] * zoomLevel;
+          let ty = targetPositions[idx + 1] * zoomLevel;
+          let tz = targetPositions[idx + 2] * zoomLevel;
+
+          // Apply divide factor (splits particles into multiple groups)
+          if (divideFactor > 1.0) {
+            const offsetX = (i % 2 === 0 ? 1 : -1) * 10 * (divideFactor - 1);
+            const offsetY = (Math.floor(i / 2) % 2 === 0 ? 1 : -1) * 10 * (divideFactor - 1);
+            tx += offsetX;
+            ty += offsetY;
+          }
 
           // 3. Hand Interaction Logic
           const dx = handPosition.x - px;
@@ -451,13 +757,31 @@
             }
           }
 
+          // Apply interaction from both hands in two-hand mode
+          if (trackedHands.length === 2) {
+            for (let handIdx = 0; handIdx < 2; handIdx++) {
+              const hand = trackedHands[handIdx];
+              const handX = (0.5 - hand.indexTip.x) * 40;
+              const handY = (0.5 - hand.indexTip.y) * 25;
+
+              const hdx = handX - px;
+              const hdy = handY - py;
+              const hdist = Math.sqrt(hdx * hdx + hdy * hdy);
+
+              if (hand.isPinching && hdist < 12) {
+                const force = Math.min(80 / (hdist * hdist + 0.1), 1.5);
+                vx += hdx * force * 0.03;
+                vy += hdy * force * 0.03;
+              }
+            }
+          }
+
           // Apply Velocity
           posArray[idx] += vx;
           posArray[idx + 1] += vy;
           posArray[idx + 2] += vz;
 
           // 4. Dynamic Coloring
-          // Lerp between color1 and color2 based on position
           const lerpVal = (Math.sin(time + px * 0.1) + 1) / 2;
           colArray[idx] = THREE.MathUtils.lerp(color1.r, color2.r, lerpVal);
           colArray[idx + 1] = THREE.MathUtils.lerp(color1.g, color2.g, lerpVal);
@@ -467,9 +791,25 @@
         positionsAttribute.needsUpdate = true;
         colorsAttribute.needsUpdate = true;
 
-        // Rotate entire system slowly
-        particles.rotation.y = time * 0.1;
+        // Apply rotation from gestures
+        if (trackedHands.length === 2) {
+          particles.rotation.y = THREE.MathUtils.lerp(
+            particles.rotation.y,
+            time * 0.1 + systemRotation.z,
+            0.1
+          );
+        } else {
+          // Default rotation when not using two hands
+          particles.rotation.y = time * 0.1;
+        }
         particles.rotation.z = Math.sin(time * 0.2) * 0.1;
+
+        // Apply zoom to camera
+        camera.position.z = THREE.MathUtils.lerp(
+          camera.position.z,
+          CAM_DEPTH / zoomLevel,
+          0.1
+        );
 
         renderer.render(scene, camera);
       }
