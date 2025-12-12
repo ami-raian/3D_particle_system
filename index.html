@@ -261,6 +261,7 @@
       <button class="btn" onclick="setShape('saturn')">Saturn</button>
       <button class="btn" onclick="setShape('flower')">Flower</button>
       <button class="btn" onclick="setShape('dna')">DNA</button>
+      <button class="btn" onclick="setShape('tlogo')">T Logo</button>
     </div>
 
     <script>
@@ -447,6 +448,58 @@
               ty = y_pos;
               tz = Math.sin(angle + Math.PI) * radius;
             }
+          } else if (shape === "tlogo") {
+            // 3D "T" Letter Shape - EXACT TAGHYEER Logo Recreation
+            // Based on the actual logo design with pixelated left side
+
+            const pixelatedSquaresCount = PARTICLE_COUNT * 0.08; // 8% for pixel squares
+            const horizontalBarCount = PARTICLE_COUNT * 0.35; // 35% for horizontal bar
+            const verticalStemCount = PARTICLE_COUNT * 0.57; // 57% for vertical stem
+
+            if (i < pixelatedSquaresCount) {
+              // PIXELATED SQUARES (top-left dispersing effect like logo)
+              // Create 6 small squares dispersing to the left
+              const squareIndex = Math.floor((i / pixelatedSquaresCount) * 6);
+              const pixelSize = 0.8;
+              const depth = 3;
+
+              // Position squares in a dispersing pattern (top-left)
+              const squarePositions = [
+                { x: -10, y: 10, size: pixelSize * 0.4 },
+                { x: -8.5, y: 10, size: pixelSize * 0.5 },
+                { x: -7, y: 10, size: pixelSize * 0.6 },
+                { x: -5.5, y: 9.5, size: pixelSize * 0.8 },
+                { x: -4, y: 9.5, size: pixelSize * 1.0 },
+                { x: -2.5, y: 9, size: pixelSize * 1.2 }
+              ];
+
+              const square = squarePositions[squareIndex];
+              tx = square.x + (Math.random() - 0.5) * square.size;
+              ty = square.y + (Math.random() - 0.5) * square.size;
+              tz = (Math.random() - 0.5) * depth;
+
+            } else if (i < pixelatedSquaresCount + horizontalBarCount) {
+              // HORIZONTAL BAR (top of T - wide and flat)
+              const barWidth = 18;
+              const barHeight = 2.5;
+              const barDepth = 3;
+
+              // Start from where pixels end (right side of dispersing pixels)
+              tx = (Math.random() * barWidth) - 1; // From -1 to 17 (mostly right side)
+              ty = 9 + (Math.random() - 0.5) * barHeight; // Top position
+              tz = (Math.random() - 0.5) * barDepth;
+
+            } else {
+              // VERTICAL STEM (centered column below the bar)
+              const stemWidth = 5;
+              const stemHeight = 16;
+              const stemDepth = 3;
+
+              // Center the stem under the middle-right of the bar
+              tx = 4 + (Math.random() - 0.5) * stemWidth; // Centered at x=4
+              ty = (Math.random() - 0.5) * stemHeight - 2; // Extends downward
+              tz = (Math.random() - 0.5) * stemDepth;
+            }
           }
 
           targetPositions[i * 3] = tx;
@@ -470,8 +523,19 @@
         event.target.classList.add("active");
 
         // Update UI
-        document.getElementById("current-shape").textContent =
-          shape.charAt(0).toUpperCase() + shape.slice(1);
+        let shapeName = shape.charAt(0).toUpperCase() + shape.slice(1);
+        if (shape === "tlogo") {
+          shapeName = "T Logo";
+          // Apply TAGHYEER brand colors (Royal Blue theme)
+          color1.setHex(0x0000AA); // Dark Blue
+          color2.setHex(0x0066FF); // Bright Blue
+        } else {
+          // Reset to default colors for other shapes
+          color1.setHex(0x00ffff); // Cyan
+          color2.setHex(0xff00ff); // Magenta
+        }
+
+        document.getElementById("current-shape").textContent = shapeName;
       };
 
       // Helper: Update gesture status display
