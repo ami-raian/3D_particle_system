@@ -449,55 +449,57 @@
               tz = Math.sin(angle + Math.PI) * radius;
             }
           } else if (shape === "tlogo") {
-            // 3D "T" Letter Shape - EXACT TAGHYEER Logo Recreation
-            // Based on the actual logo design with pixelated left side
+            // 3D "T" Letter Shape - EXACT TAGHYEER Logo Match
+            // Recreating the exact pixel pattern from the logo image
 
-            const pixelatedSquaresCount = PARTICLE_COUNT * 0.08; // 8% for pixel squares
-            const horizontalBarCount = PARTICLE_COUNT * 0.35; // 35% for horizontal bar
-            const verticalStemCount = PARTICLE_COUNT * 0.57; // 57% for vertical stem
+            const pixelSquaresCount = PARTICLE_COUNT * 0.12; // 12% for pixel squares (2 rows)
+            const horizontalBarCount = PARTICLE_COUNT * 0.38; // 38% for horizontal bar
+            const verticalStemCount = PARTICLE_COUNT * 0.50; // 50% for vertical stem
 
-            if (i < pixelatedSquaresCount) {
-              // PIXELATED SQUARES (top-left dispersing effect like logo)
-              // Create 6 small squares dispersing to the left
-              const squareIndex = Math.floor((i / pixelatedSquaresCount) * 6);
-              const pixelSize = 0.8;
-              const depth = 3;
+            if (i < pixelSquaresCount) {
+              // PIXELATED SQUARES (exact 2-row pattern from logo)
+              // Row 1 (top): 3 tiny squares
+              // Row 2 (bottom): 3 larger squares getting bigger
+              const squareIndex = Math.floor((i / pixelSquaresCount) * 6);
+              const depth = 2.5;
 
-              // Position squares in a dispersing pattern (top-left)
-              const squarePositions = [
-                { x: -10, y: 10, size: pixelSize * 0.4 },
-                { x: -8.5, y: 10, size: pixelSize * 0.5 },
-                { x: -7, y: 10, size: pixelSize * 0.6 },
-                { x: -5.5, y: 9.5, size: pixelSize * 0.8 },
-                { x: -4, y: 9.5, size: pixelSize * 1.0 },
-                { x: -2.5, y: 9, size: pixelSize * 1.2 }
+              // Exact pixel positions matching the TAGHYEER logo
+              const pixelGrid = [
+                // Top row - 3 tiny squares (left to right)
+                { x: -12, y: 11, size: 0.6 },
+                { x: -10, y: 11, size: 0.6 },
+                { x: -8, y: 11, size: 0.6 },
+                // Bottom row - 3 squares getting progressively larger
+                { x: -11, y: 9, size: 1.0 },
+                { x: -8.5, y: 9, size: 1.4 },
+                { x: -5.5, y: 9, size: 1.8 }
               ];
 
-              const square = squarePositions[squareIndex];
-              tx = square.x + (Math.random() - 0.5) * square.size;
-              ty = square.y + (Math.random() - 0.5) * square.size;
+              const pixel = pixelGrid[squareIndex];
+              tx = pixel.x + (Math.random() - 0.5) * pixel.size;
+              ty = pixel.y + (Math.random() - 0.5) * pixel.size;
               tz = (Math.random() - 0.5) * depth;
 
-            } else if (i < pixelatedSquaresCount + horizontalBarCount) {
-              // HORIZONTAL BAR (top of T - wide and flat)
-              const barWidth = 18;
-              const barHeight = 2.5;
-              const barDepth = 3;
+            } else if (i < pixelSquaresCount + horizontalBarCount) {
+              // HORIZONTAL BAR (wide top section of T)
+              const barWidth = 22; // Very wide like the logo
+              const barHeight = 3;
+              const barDepth = 2.5;
 
-              // Start from where pixels end (right side of dispersing pixels)
-              tx = (Math.random() * barWidth) - 1; // From -1 to 17 (mostly right side)
-              ty = 9 + (Math.random() - 0.5) * barHeight; // Top position
+              // Bar extends from where pixels end (-3) to the right edge
+              tx = (Math.random() * barWidth) - 3; // From -3 to 19
+              ty = 8.5 + (Math.random() - 0.5) * barHeight; // Aligned with bottom pixel row
               tz = (Math.random() - 0.5) * barDepth;
 
             } else {
-              // VERTICAL STEM (centered column below the bar)
-              const stemWidth = 5;
-              const stemHeight = 16;
-              const stemDepth = 3;
+              // VERTICAL STEM (thick center column)
+              const stemWidth = 6; // Thicker stem like the logo
+              const stemHeight = 18;
+              const stemDepth = 2.5;
 
-              // Center the stem under the middle-right of the bar
-              tx = 4 + (Math.random() - 0.5) * stemWidth; // Centered at x=4
-              ty = (Math.random() - 0.5) * stemHeight - 2; // Extends downward
+              // Center the stem - positioned around x=5 (center-right of bar)
+              tx = 5 + (Math.random() - 0.5) * stemWidth;
+              ty = (Math.random() - 0.5) * stemHeight - 3; // Extends down from bar
               tz = (Math.random() - 0.5) * stemDepth;
             }
           }
